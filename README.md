@@ -336,6 +336,38 @@ S3 upload failure:
 - Confirm the configured region is correct.
 - Run `aws sts get-caller-identity` to verify the active AWS identity.
 
+Log file permission failure:
+
+```text
+tee: /var/log/pg2s3.log: Permission denied
+```
+
+or:
+
+```text
+[2026-06-24 14:30:00] [ERROR] Log file is not writable by current user: /var/log/pg2s3.log
+```
+
+If the job runs as `ubuntu`, make the log file writable by `ubuntu`:
+
+```bash
+sudo touch /var/log/pg2s3.log
+sudo chown ubuntu:ubuntu /var/log/pg2s3.log
+sudo chmod 640 /var/log/pg2s3.log
+```
+
+Then test:
+
+```bash
+sudo -iu ubuntu bash -lc 'test -w /var/log/pg2s3.log && echo writable'
+```
+
+If you prefer cron redirection only, remove or comment out this line in `/etc/pg2s3.env`:
+
+```bash
+PG2S3_LOG_FILE=/var/log/pg2s3.log
+```
+
 Local disk pressure:
 
 - Set `PG2S3_TEMP_DIR` to a filesystem with enough free space.
