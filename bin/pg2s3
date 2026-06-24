@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly PG2S3_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+pg2s3_resolve_script_path() {
+  local source_path="${BASH_SOURCE[0]}"
+  local source_dir
+
+  while [[ -L "${source_path}" ]]; do
+    source_dir="$(cd -P "$(dirname "${source_path}")" && pwd)"
+    source_path="$(readlink "${source_path}")"
+    [[ "${source_path}" == /* ]] || source_path="${source_dir}/${source_path}"
+  done
+
+  cd -P "$(dirname "${source_path}")" && pwd
+}
+
+readonly PG2S3_BIN_DIR="$(pg2s3_resolve_script_path)"
 readonly PG2S3_ROOT_DIR="$(cd "${PG2S3_BIN_DIR}/.." && pwd)"
 readonly PG2S3_LIB_DIR="${PG2S3_ROOT_DIR}/lib"
 
