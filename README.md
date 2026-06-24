@@ -234,8 +234,10 @@ sudo crontab -u ubuntu -e
 Add:
 
 ```cron
-0 2 * * * set -a; . /etc/pg2s3.env; set +a; /usr/local/bin/pg2s3 backup >> /var/log/pg2s3.log 2>&1
+0 21 * * * set -a; . /etc/pg2s3.env; set +a; /usr/local/bin/pg2s3 backup >> /var/log/pg2s3.log 2>&1
 ```
+
+This runs every day at 9:00 PM in the server's local timezone.
 
 Make sure the `ubuntu` user can write the configured log file or the redirected cron log. One simple setup is:
 
