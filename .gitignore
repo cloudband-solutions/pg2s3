@@ -1,0 +1,6 @@
+*.dump
+*.log
+tmp/
+.env
+pg2s3.env
+.DS_Store

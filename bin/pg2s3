@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PG2S3_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly PG2S3_ROOT_DIR="$(cd "${PG2S3_BIN_DIR}/.." && pwd)"
+readonly PG2S3_LIB_DIR="${PG2S3_ROOT_DIR}/lib"
+
+# shellcheck source=../lib/logging.sh
+source "${PG2S3_LIB_DIR}/logging.sh"
+# shellcheck source=../lib/helpers.sh
+source "${PG2S3_LIB_DIR}/helpers.sh"
+# shellcheck source=../lib/config.sh
+source "${PG2S3_LIB_DIR}/config.sh"
+# shellcheck source=../lib/validation.sh
+source "${PG2S3_LIB_DIR}/validation.sh"
+# shellcheck source=../lib/postgres.sh
+source "${PG2S3_LIB_DIR}/postgres.sh"
+# shellcheck source=../lib/s3.sh
+source "${PG2S3_LIB_DIR}/s3.sh"
+# shellcheck source=../lib/backup.sh
+source "${PG2S3_LIB_DIR}/backup.sh"
+
+usage() {
+  cat <<'USAGE'
+pg2s3 - PostgreSQL to S3 backup utility
+
+Usage:
+  pg2s3 backup
+  pg2s3 help
+
+Commands:
+  backup    Discover PostgreSQL databases, dump them, and upload dumps to S3.
+  help      Show this help text.
+
+Future commands reserved by design:
+  restore, verify, cleanup, list
+USAGE
+}
+
+main() {
+  local command="${1:-}"
+
+  case "${command}" in
+    backup)
+      shift
+      if [[ "$#" -ne 0 ]]; then
+        log_error "The backup command does not accept arguments."
+        usage >&2
+        return 1
+      fi
+      pg2s3_load_config
+      pg2s3_backup
+      ;;
+    help | --help | -h)
+      usage
+      ;;
+    restore | verify | cleanup | list)
+      log_error "Command is not implemented yet: ${command}"
+      return 1
+      ;;
+    "")
+      log_error "No command provided."
+      usage >&2
+      return 1
+      ;;
+    *)
+      log_error "Unknown command: ${command}"
+      usage >&2
+      return 1
+      ;;
+  esac
+}
+
+main "$@"
