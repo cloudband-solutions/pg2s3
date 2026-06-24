@@ -15,6 +15,9 @@ pg2s3_load_config() {
     export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-${AWS_REGION}}"
   fi
 
+  export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
+  export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}"
+  export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}"
   export PGPASSWORD="${PGPASSWORD:-}"
 }
 
@@ -56,5 +59,5 @@ pg2s3_s3_destination_prefix() {
 }
 
 pg2s3_log_effective_config() {
-  log_info "Configuration: PGHOST=$(pg2s3_mask_value PGHOST "${PGHOST:-}") PGPORT=$(pg2s3_mask_value PGPORT "${PGPORT:-}") PGUSER=$(pg2s3_mask_value PGUSER "${PGUSER:-}") AWS_S3_BUCKET=$(pg2s3_mask_value AWS_S3_BUCKET "${AWS_S3_BUCKET:-}") AWS_S3_PREFIX=$(pg2s3_mask_value AWS_S3_PREFIX "${AWS_S3_PREFIX:-}") AWS_REGION=$(pg2s3_mask_value AWS_REGION "${AWS_REGION:-}")"
+  log_info "Configuration: PGHOST=$(pg2s3_mask_value PGHOST "${PGHOST:-}") PGPORT=$(pg2s3_mask_value PGPORT "${PGPORT:-}") PGUSER=$(pg2s3_mask_value PGUSER "${PGUSER:-}") AWS_S3_BUCKET=$(pg2s3_mask_value AWS_S3_BUCKET "${AWS_S3_BUCKET:-}") AWS_S3_PREFIX=$(pg2s3_mask_value AWS_S3_PREFIX "${AWS_S3_PREFIX:-}") AWS_REGION=$(pg2s3_mask_value AWS_REGION "${AWS_REGION:-}") AWS_ACCESS_KEY_ID=$(pg2s3_mask_value AWS_ACCESS_KEY_ID "${AWS_ACCESS_KEY_ID:-}") AWS_SECRET_ACCESS_KEY=$(pg2s3_mask_value AWS_SECRET_ACCESS_KEY "${AWS_SECRET_ACCESS_KEY:-}")"
 }

@@ -7,6 +7,9 @@ pg2s3_validate_required_config() {
     PGPORT
     PGUSER
     PGPASSWORD
+    AWS_REGION
+    AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY
     AWS_S3_BUCKET
   )
   local var_name
@@ -39,6 +42,14 @@ pg2s3_validate_dependencies() {
   fi
 }
 
+pg2s3_validate_aws_credentials() {
+  if ! aws sts get-caller-identity >/dev/null 2>&1; then
+    log_error "AWS credentials are not available to the current user."
+    log_error "Set AWS_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY in the environment used to run pg2s3."
+    return 1
+  fi
+}
+
 pg2s3_validate_log_file() {
   if [[ -z "${PG2S3_LOG_FILE:-}" ]]; then
     return 0
@@ -55,4 +66,5 @@ pg2s3_validate_runtime() {
   pg2s3_validate_required_config
   pg2s3_validate_log_file
   pg2s3_validate_dependencies
+  pg2s3_validate_aws_credentials
 }

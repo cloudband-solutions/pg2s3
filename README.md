@@ -22,7 +22,7 @@
 - PostgreSQL client tools: `psql`, `pg_dump`
 - AWS CLI v2, or an AWS CLI version compatible with `aws s3 cp`
 - Network access from the server to PostgreSQL and S3
-- AWS credentials supplied by an IAM role, instance profile, environment variables, or AWS config files
+- AWS credentials supplied through `AWS_REGION`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`
 
 ## Installation
 
@@ -49,6 +49,14 @@ command -v psql
 command -v pg_dump
 command -v aws
 ```
+
+Confirm AWS credentials as the same user that will run backups:
+
+```bash
+sudo -iu ubuntu bash -lc 'set -a; . /etc/pg2s3.env; set +a; aws sts get-caller-identity'
+```
+
+`pg2s3` expects AWS credentials in the environment loaded from `/etc/pg2s3.env`. The script does not read `.aws/credentials`.
 
 ## Configuration
 
@@ -81,6 +89,9 @@ Required variables:
 | `PGPORT` | PostgreSQL port |
 | `PGUSER` | PostgreSQL user |
 | `PGPASSWORD` | PostgreSQL password |
+| `AWS_REGION` | AWS region |
+| `AWS_ACCESS_KEY_ID` | AWS access key ID |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret access key |
 | `AWS_S3_BUCKET` | Destination S3 bucket name |
 
 Optional variables:
@@ -88,12 +99,12 @@ Optional variables:
 | Variable | Default | Description |
 | --- | --- | --- |
 | `AWS_S3_PREFIX` | `postgres` | S3 prefix for uploaded dumps |
-| `AWS_REGION` | unset | AWS region exported as `AWS_REGION` and `AWS_DEFAULT_REGION` |
 | `PG2S3_RETENTION_DAYS` | unset | Reserved for future cleanup support |
 | `PG2S3_LOG_FILE` | unset | If set, logs are written to stdout and this file |
 | `PG2S3_EXCLUDED_DATABASES` | unset | Extra databases to exclude, comma or space separated |
 | `PG2S3_KEEP_LOCAL_DUMPS` | `false` | Keep temporary dumps after completion when set to `true` |
 | `PG2S3_TEMP_DIR` | system default | Parent directory used for the temporary working directory |
+| `AWS_SESSION_TOKEN` | unset | Optional AWS session token for temporary credentials |
 
 Example:
 
@@ -106,13 +117,22 @@ PGPASSWORD=changeme
 AWS_S3_BUCKET=my-backups
 AWS_S3_PREFIX=postgres
 AWS_REGION=ap-southeast-1
+AWS_ACCESS_KEY_ID=AKIAEXAMPLE
+AWS_SECRET_ACCESS_KEY=replace-with-secret-access-key
 
 PG2S3_LOG_FILE=/var/log/pg2s3.log
 PG2S3_EXCLUDED_DATABASES=postgres,maintenance
 PG2S3_KEEP_LOCAL_DUMPS=false
+# AWS_SESSION_TOKEN=replace-with-session-token
 ```
 
-`pg2s3` never logs `PGPASSWORD` or other sensitive values.
+`pg2s3` never logs `PGPASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, or other sensitive values.
+
+Test the AWS environment as `ubuntu`:
+
+```bash
+sudo -iu ubuntu bash -lc 'set -a; . /etc/pg2s3.env; set +a; aws sts get-caller-identity'
+```
 
 ## Usage
 
@@ -241,9 +261,9 @@ sudo crontab -u ubuntu -l
 
 The same cron line is included in [cron/pg2s3.cron](cron/pg2s3.cron).
 
-## IAM Role Recommendations
+## AWS Credential Recommendations
 
-Use IAM roles instead of long-lived AWS access keys whenever possible. On EC2, attach an instance profile with least-privilege S3 permissions.
+Use least-privilege AWS credentials. If your environment allows IAM roles or instance profiles, they are usually safer than long-lived access keys. This implementation currently expects explicit AWS environment variables in `/etc/pg2s3.env`.
 
 Minimum write-oriented policy shape:
 
@@ -277,7 +297,8 @@ For future list, restore, verification, or cleanup commands, add only the requir
 
 ## Security Recommendations
 
-- Prefer IAM roles or instance profiles over static AWS access keys.
+- Prefer short-lived or tightly scoped AWS credentials where possible.
+- Keep `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` out of shell history and process logs.
 - Keep `/etc/pg2s3.env` readable only by trusted users.
 - Use a PostgreSQL role with the minimum permissions needed for backups.
 - Do not place secrets directly in crontab lines.
@@ -332,9 +353,36 @@ PostgreSQL authentication failure:
 S3 upload failure:
 
 - Verify `AWS_S3_BUCKET` and `AWS_S3_PREFIX`.
-- Confirm the EC2 instance role or AWS credentials allow `s3:PutObject`.
+- Confirm `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` allow `s3:PutObject`.
 - Confirm the configured region is correct.
-- Run `aws sts get-caller-identity` to verify the active AWS identity.
+- Run `set -a; . /etc/pg2s3.env; set +a; aws sts get-caller-identity` to verify the active AWS identity.
+
+AWS credential failure:
+
+```text
+Unable to locate credentials
+```
+
+or:
+
+```text
+[2026-06-24 14:30:00] [ERROR] AWS credentials are not available to the current user.
+```
+
+Check credentials as the `ubuntu` user:
+
+```bash
+sudo -iu ubuntu bash -lc 'set -a; . /etc/pg2s3.env; set +a; aws sts get-caller-identity'
+sudo -iu ubuntu bash -lc 'set -a; . /etc/pg2s3.env; set +a; aws configure list'
+```
+
+The environment file must include:
+
+```bash
+AWS_REGION=ap-southeast-1
+AWS_ACCESS_KEY_ID=your-access-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-access-key
+```
 
 Log file permission failure:
 
