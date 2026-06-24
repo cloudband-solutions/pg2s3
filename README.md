@@ -56,8 +56,21 @@ Create an environment file such as `/etc/pg2s3.env`:
 
 ```bash
 sudo cp examples/pg2s3.env.example /etc/pg2s3.env
-sudo chmod 600 /etc/pg2s3.env
 sudo editor /etc/pg2s3.env
+```
+
+If backups will run as the `ubuntu` user, make the file readable by `ubuntu` and not readable by other users:
+
+```bash
+sudo chown ubuntu:ubuntu /etc/pg2s3.env
+sudo chmod 600 /etc/pg2s3.env
+```
+
+Alternatively, keep `root` as the owner and grant read access to the `ubuntu` group:
+
+```bash
+sudo chown root:ubuntu /etc/pg2s3.env
+sudo chmod 640 /etc/pg2s3.env
 ```
 
 Required variables:
@@ -110,6 +123,12 @@ set -a
 . /etc/pg2s3.env
 set +a
 pg2s3 backup
+```
+
+Test the same flow explicitly as the `ubuntu` user:
+
+```bash
+sudo -iu ubuntu bash -lc 'set -a; . /etc/pg2s3.env; set +a; /usr/local/bin/pg2s3 backup'
 ```
 
 The only implemented command is:
@@ -186,13 +205,41 @@ If `PG2S3_LOG_FILE` is set, logs are written to stdout and appended to the confi
 
 ## Cron Setup
 
-Install a cron entry like:
+For a user crontab, install the job as `ubuntu`:
+
+```bash
+sudo crontab -u ubuntu -e
+```
+
+Add:
 
 ```cron
 0 2 * * * set -a; . /etc/pg2s3.env; set +a; /usr/local/bin/pg2s3 backup >> /var/log/pg2s3.log 2>&1
 ```
 
-The same line is included in [cron/pg2s3.cron](cron/pg2s3.cron).
+Make sure the `ubuntu` user can write the configured log file or the redirected cron log. One simple setup is:
+
+```bash
+sudo touch /var/log/pg2s3.log
+sudo chown ubuntu:ubuntu /var/log/pg2s3.log
+sudo chmod 640 /var/log/pg2s3.log
+```
+
+Test the cron command as `ubuntu` before waiting for the scheduled run:
+
+```bash
+sudo -iu ubuntu bash -lc 'set -a; . /etc/pg2s3.env; set +a; /usr/local/bin/pg2s3 backup >> /var/log/pg2s3.log 2>&1'
+sudo tail -n 100 /var/log/pg2s3.log
+```
+
+To install the included cron file into the `ubuntu` user's crontab:
+
+```bash
+sudo crontab -u ubuntu cron/pg2s3.cron
+sudo crontab -u ubuntu -l
+```
+
+The same cron line is included in [cron/pg2s3.cron](cron/pg2s3.cron).
 
 ## IAM Role Recommendations
 
